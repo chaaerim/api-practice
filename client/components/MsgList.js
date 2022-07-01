@@ -1,55 +1,41 @@
 import MsgItem from './MsgItem';
 import MsgInput from './MsgInput';
-import { useState } from 'react';
-
-const UserIds = ['spiderman', 'MJ'];
-const getRandomUserId = () => UserIds[Math.round(Math.random())];
-
-const originalMsgs = Array(50)
-  .fill(0)
-  .map((_, i) => ({
-    id: i + 1,
-    userId: getRandomUserId(),
-    timestamp: 1234567890123 + i * 1000 * 60,
-    text: `${i + 1} test message`,
-  }))
-  .reverse();
-
-// const msgs = [
-//   { id: 1, userId: getRandomUserId(), timestamp: 1234567890123, text: '' },
-// ];
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import fetcher from '../fetcher';
 
 const MsgList = () => {
-  const [msgs, setMsgs] = useState(originalMsgs);
+  //url로 user id 넘기기
+  const { query } = useRouter();
+  const userId = query.userId || query.userid || '';
+  const [msgs, setMsgs] = useState([]);
   const [editingId, setEditingId] = useState(null);
-  const onCreate = (text) => {
-    const newMsg = {
-      id: msgs.length + 1,
-      userId: getRandomUserId(),
-      timestamp: Date.now(),
-      text: `${msgs.length + 1} ${text}`,
-    };
+  const onCreate = async (text) => {
+    const newMsg = await fetcher('post', '/messages', { text, userId });
+    if (!newMsg) return;
     setMsgs((msgs) => [newMsg, ...msgs]);
-    console.log(msgs);
   };
 
-  const onUpdate = (text, id) => {
+  const onUpdate = async (text, id) => {
+    const newMsg = await fetcher('put', `/messages/${id}`, { text, userId });
+    if (!newMsg) return;
     setMsgs((msgs) => {
       const targetIndex = msgs.findIndex((msg) => msg.id === id);
       if (targetIndex < 0) return msgs;
       const newMsgs = [...msgs];
-      newMsgs.splice(targetIndex, 1, {
-        ...msgs[targetIndex],
-        text,
-      });
+      newMsgs.splice(targetIndex, 1, newMsg);
       return newMsgs;
     });
     doneEdit();
   };
 
-  const onDelete = (id) => {
+  const onDelete = async (id) => {
+    const receivedId = await fetcher('delete', `/messages/${id}`, {
+      params: { userId },
+    });
+    //recievedid가 json일 때 숫자로 형변환이 가능한 애들이기 때문에 발생하는 문제 typeof으로 출력해봐
     setMsgs((msgs) => {
-      const targetIndex = msgs.findIndex((msg) => msg.id === id);
+      const targetIndex = msgs.findIndex((msg) => msg.id === receivedId + '');
       if (targetIndex < 0) return msgs;
       const newMsgs = [...msgs];
       newMsgs.splice(targetIndex, 1);
@@ -58,6 +44,15 @@ const MsgList = () => {
   };
 
   const doneEdit = () => setEditingId(null);
+
+  const getMessages = async () => {
+    const msgs = await fetcher('get', '/messages');
+    setMsgs(msgs);
+  };
+
+  useEffect(() => {
+    getMessages();
+  }, []);
 
   return (
     <>
@@ -71,6 +66,7 @@ const MsgList = () => {
             onDelete={() => onDelete(msg.id)}
             startEdit={() => setEditingId(msg.id)}
             isEditing={editingId === msg.id}
+            myId={userId}
           />
         ))}
       </ul>
