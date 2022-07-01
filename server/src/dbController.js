@@ -5,7 +5,7 @@ const basePath = resolve();
 
 const filenames = {
   messages: resolve(basePath, 'src/db/messages.json'),
-  users: resolve(basePath, 'src/db/user.json'),
+  users: resolve(basePath, 'src/db/users.json'),
 };
 
 export const readDB = (target) => {
@@ -13,7 +13,7 @@ export const readDB = (target) => {
     //인코딩 명시하지 않으면 오류가 발생할 수 있음.
     return JSON.parse(fs.readFileSync(filenames[target], 'utf-8'));
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 };
 
