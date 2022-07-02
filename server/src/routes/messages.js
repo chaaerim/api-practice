@@ -33,16 +33,21 @@ const messagesRoute = [
     method: 'post',
     route: '/messages',
     handler: ({ body }, res) => {
-      const msgs = getMsgs();
-      const newMsg = {
-        id: v4(),
-        text: body.text,
-        userId: body.userId,
-        timestamp: Date.now(),
-      };
-      msgs.unshift(newMsg);
-      setMsgs(msgs);
-      res.send(newMsg);
+      try {
+        if (!body.userId) throw Error('no userId');
+        const msgs = getMsgs();
+        const newMsg = {
+          id: v4(),
+          text: body.text,
+          userId: body.userId,
+          timestamp: Date.now(),
+        };
+        msgs.unshift(newMsg);
+        setMsgs(msgs);
+        res.send(newMsg);
+      } catch (err) {
+        res.status(500).send({ error: err });
+      }
     },
   },
   {
@@ -70,6 +75,8 @@ const messagesRoute = [
     // DELETE MESSAGE
     method: 'delete',
     route: '/messages/:id',
+
+    //params로 보내줘도 request 응답 요청에는 query로 들어감.
     handler: ({ params: { id }, query: { userId } }, res) => {
       try {
         const msgs = getMsgs();
