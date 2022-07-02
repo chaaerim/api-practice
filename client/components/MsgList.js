@@ -1,8 +1,9 @@
 import MsgItem from './MsgItem';
 import MsgInput from './MsgInput';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import fetcher from '../fetcher';
+import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
 const MsgList = () => {
   //url로 user id 넘기기
@@ -10,6 +11,12 @@ const MsgList = () => {
   const userId = query.userId || query.userid || '';
   const [msgs, setMsgs] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const fetchMoreEl = useRef(null);
+  const [hasNext, setHasNext] = useState(true);
+  //fetchMoreEl을 넘겨받아 무한스크롤에 대한 판단을 훅에서 하고
+  //fetchMoreEl이 화면상에 나타났을 때에는 intersection이 true 그렇지 않을 때에는 false
+  const intersecting = useInfiniteScroll(fetchMoreEl);
+
   const onCreate = async (text) => {
     const newMsg = await fetcher('post', '/messages', { text, userId });
     if (!newMsg) return;
@@ -46,14 +53,19 @@ const MsgList = () => {
   const doneEdit = () => setEditingId(null);
 
   const getMessages = async () => {
-    const msgs = await fetcher('get', '/messages');
-    setMsgs(msgs);
+    const newMsgs = await fetcher('get', '/messages', {
+      params: { cursor: msgs[msgs.length - 1]?.id || '' },
+    });
+    if (newMsgs.length === 0) {
+      setHasNext(false);
+      return;
+    }
+    setMsgs((msgs) => [...msgs, ...newMsgs]);
   };
 
   useEffect(() => {
-    getMessages();
-  }, []);
-
+    if (intersecting && hasNext) getMessages();
+  }, [intersecting]);
   return (
     <>
       {userId && <MsgInput mutate={onCreate} />}
@@ -70,6 +82,7 @@ const MsgList = () => {
           />
         ))}
       </ul>
+      <div ref={fetchMoreEl} />
     </>
   );
 };
