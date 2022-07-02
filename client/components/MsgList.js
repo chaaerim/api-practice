@@ -5,11 +5,11 @@ import { useRouter } from 'next/router';
 import fetcher from '../fetcher';
 import useInfiniteScroll from '../hooks/useInfiniteScroll';
 
-const MsgList = () => {
+const MsgList = ({ smsgs, users }) => {
   //url로 user id 넘기기
   const { query } = useRouter();
   const userId = query.userId || query.userid || '';
-  const [msgs, setMsgs] = useState([]);
+  const [msgs, setMsgs] = useState(smsgs);
   const [editingId, setEditingId] = useState(null);
   const fetchMoreEl = useRef(null);
   const [hasNext, setHasNext] = useState(true);
@@ -79,6 +79,7 @@ const MsgList = () => {
             startEdit={() => setEditingId(msg.id)}
             isEditing={editingId === msg.id}
             myId={userId}
+            user={users[msg.userId]}
           />
         ))}
       </ul>
